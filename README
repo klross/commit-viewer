@@ -1,0 +1,24 @@
+README -
+
+Open commit_viewer.py file and run the script.
+
+You will be asked to input the URL of the repository from which you want to obtain a commit list.
+If the app is unable to get the commit list using GitHub's API, it will resort to cloning the repository and using the git CLI to obtain the commit history.
+Therefore, you will be asked to input a path for the cloning location.
+If the directory already exists, enter that path instead. 
+
+Note: if fallback to CLI function occurs, data will be pesisted as was instructed in Part 2.2.
+
+
+
+TO DO:
+
+- Add timeout in case API requests (Part 3) take too long
+
+- Write automated tests file with lists of repos
+
+- Log code 
+
+- Add authentification option
+
+- Check inputed paths
