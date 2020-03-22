@@ -1,24 +1,27 @@
 README -
 
-Open commit_viewer.py file and run the script.
+All functions to retrieve and persist commits are contained in commit_viewer.py
+Tests for each part of the coding challenge are included.
+Simply run each of them individually in order to test the app.
 
+
+TestRun_app will test the generalized commit-viewer:
 You will be asked to input the URL of the repository from which you want to obtain a commit list.
-If the app is unable to get the commit list using GitHub's API, it will resort to cloning the repository and using the git CLI to obtain the commit history.
+If the app is unable to get the commit list using GitHub's API, it will resort to cloning the repository and using the CLI retriever to obtain the commit history.
 Therefore, you will be asked to input a path for the cloning location.
 If the directory already exists, enter that path instead. 
 
-Note: if fallback to CLI function occurs, data will be pesisted as was instructed in Part 2.2.
+TestCLI, testAPI and persist_data will be run on a remote test repository I created (test-repo). 
+For testCLI and persist_data, cloning may be necessary, therefore you will also be asked to input a path for desired cloning location (unless the repository has already been cloned, in which case enter that path).
+Persist_data should create a 'commit_list.json' file in the provided directory path.
+The test should create this file, make a new local commit in the test-repo, and update the file with the new commit.
 
+If you have any questions, email me at klross@wesleyan.edu!
 
 
 TO DO:
-
-- Add timeout in case API requests (Part 3) take too long
-
-- Write automated tests file with lists of repos
-
+- Add timeout in case API requests take too long
+- Write more test cases
 - Log code 
-
 - Add authentification option
-
 - Check inputed paths
