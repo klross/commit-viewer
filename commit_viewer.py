@@ -76,7 +76,7 @@ def get_commits_cli(url, persist = False):
 
 
 
-#function to get full commits through GitHub API - unnecessary data will be cleaned later
+#function to get full commits through GitHub API
 def get_commits_api(url):
     
     #check url, extract owner and repository names
@@ -98,28 +98,32 @@ def get_commits_api(url):
                 if 'rel="next"' not in commit_pg.headers['Link']:
                     next = False
             i = i + 1
-            
+        commits = clean_commits_api(commits)
+           
     except ValueError:
         
         commit_pg = gh_session.get(url = url).json()
-        
+
         if commit_pg["message"] == "Git Repository is empty.":
             print('The repository is empty. No commits.')
-            commits = []
+            return []
             
         elif commit_pg["message"] == "Not Found":
-            print("The page was not found with provided URL")
-            
+            print ("The page was not found with provided URL")
+            return None
+      
         else:
             print("Authentification may be required: unable to access private repositories \
 or repositories with too many commits (requests limited to 60 an hour for unauthenticated users)")
-
+            return None
+        
     return commits
 
 
 #only keep useful data from get_commits_api
 def clean_commits_api(commits):
-
+    
+    assert type(commits) == list #if not list then get_commits_api failed
     clean_commits = []
     current_commit = {}
     for commit in commits:
@@ -162,10 +166,10 @@ def run_app():
     try:
         print('API retrieval')
         commits = get_commits_api(url)
-        commits = clean_commits_api(commits)
+        assert commits != None
         return commits
     
-    #fallback onto CLI implemtation if above fails, and persist
+    #fallback onto CLI implemtation if above fails
     except:
         print('CLI retrieval')
         commits = get_commits_cli(url, persist = False)
@@ -202,9 +206,12 @@ def where_json(filename = 'commit_list.json'):
 #main functionto persist data, will rely on get_commits_cli
 #TODO - incorporate persist data into get_commits_cli (under persist = true arg)
 def persist_data(url, filename = 'commit_list.json'):
+    
     data = get_commits_cli(url, persist = True)
+    
     #check if file exists and create it if doesn't exist
     if where_json():
+        
         update_json(data, filename)
         try: #need to update tag to latest commit
             delete_tag() 
