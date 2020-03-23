@@ -14,5 +14,7 @@ git_add = subprocess.check_output(command_add, stderr=subprocess.STDOUT)
 command_commit = ['git', 'commit', '-m', 'new_commit']
 git_commit = subprocess.check_output(command_commit, stderr=subprocess.STDOUT)
 
+
+#should see 'new commit' in commit list
 updated_commits = commits = persist_data(url, filename = 'commit_list.json')
 print(commits)

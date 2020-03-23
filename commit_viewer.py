@@ -10,7 +10,6 @@ import sys
 
 
 
-
 #function to get commits through GitHub command line
 def get_commits_cli(url, persist = False):
 
@@ -39,8 +38,11 @@ def get_commits_cli(url, persist = False):
 
     #if data is not being persisted retrieve entire commit history    
     else:
-        lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
-
+        try:
+            lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
+        except: #would only fail if empty repository
+            print('The repository is empty. No commits.')
+            lines = b''
         
     #parse commits
     lines = (lines.decode()).split('\n')
@@ -57,10 +59,13 @@ def get_commits_cli(url, persist = False):
             current_commit['email'] = line[2]
             current_commit['date'] = line[3]
             current_commit['message'] = line[4]
+            
         except ValueError:
             pass
+        
         except AssertionError:
             pass
+        
         commits.append(current_commit)
         current_commit = {}
 
@@ -94,12 +99,16 @@ def get_commits_api(url):
             i = i + 1
             
     except ValueError:
+        
         commit_pg = gh_session.get(url = url).json()
+        
         if commit_pg["message"] == "Git Repository is empty.":
             print('The repository is empty. No commits.')
             commits = []
+            
         elif commit_pg["message"] == "Not Found":
             print("The page was not found with provided URL")
+            
         else:
             print("Authentification may be required: unable to access private repositories \
 or repositories with too many commits (requests limited to 60 an hour for unauthenticated users)")
@@ -163,7 +172,6 @@ def run_app():
 
 
 
-    
 
 #PERSIST DATA
 
@@ -176,16 +184,22 @@ def delete_tag():
     delete = subprocess.check_output(['git', 'tag', '-d','persisted_commits'], stderr=subprocess.STDOUT)
     return delete
 
+
 #function to read json file
 def read_json(filename = 'commit_list.json'):
     with open(filename) as file:
         data = json.load(file)
     return data
+
+
         
 #function to check if json file exists
 def where_json(filename = 'commit_list.json'):
     return os.path.exists(filename)
 
+
+#main functionto persist data, will rely on get_commits_cli
+#TODO - incorporate persist data into get_commits_cli (under persist = true arg)
 def persist_data(url, filename = 'commit_list.json'):
     data = get_commits_cli(url, persist = True)
     #check if file exists and create it if doesn't exist
@@ -209,6 +223,8 @@ def persist_data(url, filename = 'commit_list.json'):
     return commits
 
 
+
+#update commit file if it already exists
 def update_json(new_commits, filename = 'commit_list.json'):
     commits = read_json(filename)
     #no update if no new commits
