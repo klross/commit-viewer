@@ -23,34 +23,35 @@ def get_commits_cli(url, persist = False):
     command = ['if cd {}; then git pull; else git clone {} {}; fi'.format(path, url, path)]
     command_run = subprocess.call(command, shell = True)
 
-    #assert successful clone
-    assert os.path.isdir(path)
-
-    #acces new directory
-    os.chdir(path)
+    try:
+        assert os.path.isdir(path) #assert successful clone
+        os.chdir(path) #access new directory
+        
+    except AssertionError:
+        print('Check inputed URL, it seems no repository was found.')
+        return None
 
     
     if persist == True:
-        try: #check if you need to retrieve full commit history or only new commits, then retrieve
-            lines = check_tag()
-        except: #if above command fails resort to retrieving entire commit history
+        try: 
+            lines = check_tag() #check if you need to retrieve full commit history or only new commits, then retrieve
+        except: 
             lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
-
-    #if data is not being persisted retrieve entire commit history    
-    else:
-        try:
+      
+    else: 
+        try: #if data is not being persisted retrieve entire commit history  
             lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
         except: #would only fail if empty repository
             print('The repository is empty. No commits.')
-            lines = b''
+            return []
         
     #parse commits
-    lines = (lines.decode()).split('\n')
+    lines = (lines.decode()).split('\n') #list all commits individually
     commits = []
     current_commit = {}
     
     for line in lines:
-        line = line.split(' - ')
+        line = line.split(' - ') #split each commit statement 
         
         try:
             assert len(line) == 5
