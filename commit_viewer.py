@@ -14,19 +14,16 @@ import sys
 def get_commits_cli(url, persist = False):
 
     #check valid URL
-    check_url(url)
-    
+    check_url(url) 
     #ask user where they would like to clone repository (or path to existing directory)
     path = input("Enter path for new or existing directory: ")
-    
     #only clone if directory does not already exist
     command = ['if cd {}; then git pull; else git clone {} {}; fi'.format(path, url, path)]
     command_run = subprocess.call(command, shell = True)
 
     try:
         assert os.path.isdir(path) #assert successful clone
-        os.chdir(path) #access new directory
-        
+        os.chdir(path) #access new directory     
     except AssertionError:
         print('Check inputed URL, it seems no repository was found.')
         return None
@@ -36,8 +33,7 @@ def get_commits_cli(url, persist = False):
         try: 
             lines = check_tag() #check if you need to retrieve full commit history or only new commits, then retrieve
         except: 
-            lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
-      
+            lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)   
     else: 
         try: #if data is not being persisted retrieve entire commit history  
             lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
@@ -49,27 +45,22 @@ def get_commits_cli(url, persist = False):
     lines = (lines.decode()).split('\n') #list all commits individually
     commits = []
     current_commit = {}
-    
     for line in lines:
-        line = line.split(' - ') #split each commit statement 
-        
+        line = line.split(' - ') #split each commit statement   
         try:
             assert len(line) == 5
             current_commit['hash'] = line[0]
             current_commit['author'] = line[1]
             current_commit['email'] = line[2]
             current_commit['date'] = line[3]
-            current_commit['message'] = line[4]
-            
+            current_commit['message'] = line[4]     
         except ValueError:
-            pass
-        
+            pass   
         except AssertionError:
             pass
         
         commits.append(current_commit)
         current_commit = {}
-
     assert len(commits) == len(lines)
     
     return commits
@@ -86,19 +77,21 @@ def get_commits_api(url):
         commits = []
         next = True
         i = 1
-        while next == True:
+        while next == True: #pagination
 
-            gh_session = requests.Session()
+            gh_session = requests.Session() 
             url = 'https://api.github.com/repos/{}/{}/commits?page={}&per_page=100'.format(owner, repo, i)
-            commit_pg = gh_session.get(url = url)
+            commit_pg = gh_session.get(url = url) #access github api
             commit_pg_list = [dict(item, **{'repo_name':'{}'.format(repo)}) for item in commit_pg.json()]    
             commit_pg_list = [dict(item, **{'owner':'{}'.format(owner)}) for item in commit_pg_list]
             commits = commits + commit_pg_list
-            if 'Link' in commit_pg.headers:
+            
+            if 'Link' in commit_pg.headers: #no more commit pages, stop
                 if 'rel="next"' not in commit_pg.headers['Link']:
-                    next = False
+                    next = False    
             i = i + 1
-        commits = clean_commits_api(commits)
+            
+        commits = clean_commits_api(commits) #extract relevant info
            
     except ValueError:
         
@@ -109,8 +102,8 @@ def get_commits_api(url):
             return []
             
         elif commit_pg["message"] == "Not Found":
-            print ("The page was not found with provided URL")
-            return None
+            return "The page was not found with provided URL"
+            
       
         else:
             print("Authentification may be required: unable to access private repositories \
