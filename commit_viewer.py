@@ -10,77 +10,9 @@ import sys
 
 
 
-#functions to create and delete tags
-def create_tag():
-    new_tag = subprocess.check_output(['git', 'tag', 'persisted_commits'], stderr=subprocess.STDOUT)
-    return new_tag
-
-def delete_tag():
-    delete = subprocess.check_output(['git', 'tag', '-d','persisted_commits'], stderr=subprocess.STDOUT)
-    return delete
-
-#function to read json file
-def read_json(filename = 'commit_list.json'):
-    with open(filename) as file:
-        data = json.load(file)
-    return data
-        
-#function to check if json file exists
-def where_json(filename = 'commit_list.json'):
-    return os.path.exists(filename)
-
-def persist_data(url, filename = 'commit_list.json'):
-    data = get_commits_cli(url)
-    #check if file exists and create it if doesn't exist
-    if where_json():
-        update_json(data, filename)
-
-        try: #need to update tag to latest commit
-            delete_tag() 
-            create_tag()
-        except: #handle case of empty repository
-            commits = [{}]
-    else:
-        with open(filename, 'w') as outfile:  
-            json.dump(data, outfile)
-        try:
-            create_tag() #next time you will only persist newest commits
-        except: #handle case of empty repository, can't create tag
-            commits = [{}]
-
-    commits = read_json(filename)
-    return commits
-
-
-def update_json(new_commits, filename = 'commit_list.json'):
-    commits = read_json(filename)
-    #no update if no new commits
-    if new_commits == [{}]:
-        new_commits = commits    
-    else:
-        new_commits.extend(commits)
-        #is there a way to do this w\o overwriting the file?
-        with open(filename, 'w') as outfile:  
-            json.dump(new_commits, outfile)       
-    return new_commits
-
-
-#if 'persisted_commits' tag exists only retrieve commits since tag
-#otherwise retrieve all commits
-def check_tag():
-    check = subprocess.check_output(['git', 'tag', '-l', 'persisted_commits'], stderr=subprocess.STDOUT)
-    if check == b'persisted_commits\n':
-        lines = subprocess.check_output(['git', 'log', 'persisted_commits..HEAD', '--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
-    else:
-        try: 
-            lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
-        except:
-            lines = b'' 
-    return lines
-
 
 #function to get commits through GitHub command line
-def get_commits_cli(url):
+def get_commits_cli(url, persist = False):
 
     #check valid URL
     check_url(url)
@@ -98,15 +30,19 @@ def get_commits_cli(url):
     #acces new directory
     os.chdir(path)
 
-    #check if you need to retrieve full commit history or only new commits, then retrieve
-    try:
-        lines = check_tag()
-    except:
+    
+    if persist == True:
+        try: #check if you need to retrieve full commit history or only new commits, then retrieve
+            lines = check_tag()
+        except: #if above command fails resort to retrieving entire commit history
+            lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
+
+    #if data is not being persisted retrieve entire commit history    
+    else:
         lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
-        
+
         
     #parse commits
-    # - is not good way to split find another way (what if that character is used in the message or something?)
     lines = (lines.decode()).split('\n')
     commits = []
     current_commit = {}
@@ -222,9 +158,83 @@ def run_app():
     #fallback onto CLI implemtation if above fails, and persist
     except:
         print('CLI retrieval')
-        commits = get_commits_cli(url)
+        commits = get_commits_cli(url, persist = False)
         return commits
 
+
+
+    
+
+#PERSIST DATA
+
+#functions to create and delete tags
+def create_tag():
+    new_tag = subprocess.check_output(['git', 'tag', 'persisted_commits'], stderr=subprocess.STDOUT)
+    return new_tag
+
+def delete_tag():
+    delete = subprocess.check_output(['git', 'tag', '-d','persisted_commits'], stderr=subprocess.STDOUT)
+    return delete
+
+#function to read json file
+def read_json(filename = 'commit_list.json'):
+    with open(filename) as file:
+        data = json.load(file)
+    return data
+        
+#function to check if json file exists
+def where_json(filename = 'commit_list.json'):
+    return os.path.exists(filename)
+
+def persist_data(url, filename = 'commit_list.json'):
+    data = get_commits_cli(url, persist = True)
+    #check if file exists and create it if doesn't exist
+    if where_json():
+        update_json(data, filename)
+        try: #need to update tag to latest commit
+            delete_tag() 
+            create_tag()
+        except: #handle case of empty repository, no tag to delete
+            commits = [{}]
+            
+    else:
+        with open(filename, 'w') as outfile:  
+            json.dump(data, outfile)
+        try:
+            create_tag() #next time you will only persist newest commits
+        except: #handle case of empty repository, can't create tag
+            commits = [{}]
+
+    commits = read_json(filename)
+    return commits
+
+
+def update_json(new_commits, filename = 'commit_list.json'):
+    commits = read_json(filename)
+    #no update if no new commits
+    if new_commits == [{}]:
+        new_commits = commits    
+    else:
+        new_commits.extend(commits)
+        #is there a way to do this w\o overwriting the file?
+        with open(filename, 'w') as outfile:  
+            json.dump(new_commits, outfile)       
+    return new_commits
+
+
+#if 'persisted_commits' tag exists only retrieve commits since tag
+#otherwise retrieve all commits
+def check_tag():
+    
+    check = subprocess.check_output(['git', 'tag', '-l', 'persisted_commits'], stderr=subprocess.STDOUT)
+    if check == b'persisted_commits\n':
+        lines = subprocess.check_output(['git', 'log', 'persisted_commits..HEAD', '--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
+    else:
+        try: 
+            lines = subprocess.check_output(['git', 'log','--pretty=format:%H - %an - %ae - %ad - %s'], stderr=subprocess.STDOUT)
+        except: #empty repository case
+            lines = b'' 
+    return lines
 
 
 
